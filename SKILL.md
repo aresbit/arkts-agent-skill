@@ -44,6 +44,47 @@ Use targeted search on the chapter directory:
   - Why this matches spec behavior.
 - For migration questions, produce a before/after snippet and list breaking points.
 
+## Compile Error Fix Playbook (Field-tested)
+
+Use this checklist first when ArkTS build fails with strict diagnostics:
+
+1. Reproduce with CLI and capture exact diagnostics:
+   - `hvigorw assembleHap`
+2. Map each error code to one direct rewrite, then recompile immediately.
+
+### Frequent Errors and Minimal Fixes
+
+- `arkts-no-untyped-obj-literals`:
+  - Root cause: inline object literals in places where ArkTS requires explicit class/interface instances.
+  - Fix: replace `{ ... }` values with class instances (`new Xxx(...)`) or strongly typed containers.
+- `arkts-no-obj-literals-as-types`:
+  - Root cause: using object literal shape directly in type positions (for example inline `{ v: string, w: number }` arrays).
+  - Fix: extract a named `class`/`interface` (for example `WeightedItem`) and use that type.
+- `arkts-no-props-by-index`:
+  - Root cause: dynamic property indexing on fields like `obj[key]`.
+  - Fix: replace with `Map<K,V>` (`get/set`) or explicit `switch`/branch lookup.
+
+### Practical Rewrite Patterns
+
+- `Record<string, T>` dictionaries with dynamic keys:
+  - Prefer `Map<string, T>` for mutable runtime lookup.
+- i18n maps accessed by `I18N[lang][key]`:
+  - Replace with deterministic `switch` function (`t(key)`), especially when key is runtime string.
+- Bigram/follower tables as plain object literals:
+  - Replace with explicit lookup function `followersOf(ch)` using `switch`.
+- Weak-key and weighted pools:
+  - Replace anonymous object items with named classes (`WeakKey`, `WeightedItem`) to satisfy strict typing.
+
+### Validation Loop
+
+1. Change the smallest failing region.
+2. Re-run `hvigorw assembleHap`.
+3. Continue until only warnings remain.
+4. Report separately:
+   - Compile blockers fixed.
+   - Remaining warnings (deprecated APIs, throw-handling hints).
+
+
 ## Reference
 
 - Full OCR markdown: `arktsspecification_ocr_full.md`
